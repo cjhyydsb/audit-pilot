@@ -1,0 +1,24 @@
+[
+  {
+    "id": "H-01",
+    "clause": "应设置会话空闲超时自动退出（TMOUT≤600秒）",
+    "command": "grep -E 'TMOUT' /etc/profile",
+    "passPattern": "TMOUT=([1-9]|[1-9]\\d|[1-5]\\d\\d|600)\\b",
+    "failPattern": "TMOUT=(?:60[1-9]|6[1-9]\\d|[7-9]\\d\\d|\\d{4,})\\b",
+    "note": "等保2.0 安全计算环境-身份鉴别"
+  },
+  {
+    "id": "H-02",
+    "clause": "密码最长使用期不超过90天",
+    "command": "grep -E '^PASS_MAX_DAYS' /etc/login.defs",
+    "passPattern": "PASS_MAX_DAYS\\s+([1-9]|[1-8][0-9]|90)$",
+    "failPattern": "PASS_MAX_DAYS\\s+\\d{3,}$",
+    "note": "等保2.0 安全计算环境-身份鉴别"
+  },
+  {
+    "id": "H-03",
+    "clause": "开放端口核查（对照资产台账，确认无未登记的监听端口）",
+    "command": "ss -tlnp",
+    "note": "无自动判定规则，需人工对照台账确认"
+  }
+]

@@ -1,0 +1,28 @@
+{
+  "name": "audit-pilot",
+  "version": "1.0.0",
+  "description": "等保/基线核查辅助工具：解析核查清单、只读白名单审查、SSH 采集、规则判定、初筛报告与截图取证脚本生成",
+  "type": "module",
+  "main": "dist/cli.js",
+  "scripts": {
+    "test": "vitest run",
+    "build": "tsc"
+  },
+  "keywords": [
+    "audit",
+    "baseline",
+    "compliance"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@types/node": "^26.6.4",
+    "@types/ssh2": "^1.15.6",
+    "ssh2": "^1.17.0",
+    "strip-ansi": "^7.2.0",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.3",
+    "xlsx": "^0.18.5"
+  }
+}

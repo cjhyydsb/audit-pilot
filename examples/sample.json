@@ -1,0 +1,58 @@
+[
+  {
+    "id": "S01",
+    "clause": "应禁止SSH空口令登录",
+    "command": "grep -E '^\\s*PermitEmptyPasswords\\s+yes' /etc/ssh/sshd_config",
+    "failPattern": "PermitEmptyPasswords\\s+yes",
+    "note": "等保：身份鉴别"
+  },
+  {
+    "id": "S02",
+    "clause": "密码最长使用期不超过90天",
+    "command": "grep -E '^PASS_MAX_DAYS' /etc/login.defs",
+    "passPattern": "PASS_MAX_DAYS\\s+([1-9]|[1-8][0-9]|90)$",
+    "failPattern": "PASS_MAX_DAYS\\s+\\d{3,}$",
+    "note": "等保：身份鉴别"
+  },
+  {
+    "id": "S03",
+    "clause": "应限制root远程登录",
+    "command": "grep -Ei '^PermitRootLogin' /etc/ssh/sshd_config",
+    "passPattern": "PermitRootLogin\\s+(no|prohibit-password)",
+    "failPattern": "PermitRootLogin\\s+yes",
+    "note": "等保：身份鉴别"
+  },
+  {
+    "id": "S04",
+    "clause": "应设置会话空闲超时自动退出（TMOUT）",
+    "command": "grep -E 'TMOUT' /etc/profile",
+    "passPattern": "TMOUT",
+    "note": "等保：安全审计/会话管理"
+  },
+  {
+    "id": "S05",
+    "clause": "开放端口核查（对照资产台账确认无违规端口）",
+    "command": "ss -tlnp",
+    "note": "无自动判定规则，需人工确认"
+  },
+  {
+    "id": "S06",
+    "clause": "危险命令拦截演示（本条不应被自动执行）",
+    "command": "reboot",
+    "note": "用于验证 guard 安全拦截"
+  },
+  {
+    "id": "S07",
+    "clause": "应配置密码复杂度策略（pam_pwquality）",
+    "command": "grep -E '^password\\s+(requisite|required)\\s+pam_pwquality.so' /etc/pam.d/system-auth",
+    "passPattern": "pam_pwquality\\.so",
+    "note": "等保：身份鉴别"
+  },
+  {
+    "id": "S08",
+    "clause": "应审计并限制历史命令保存条数",
+    "command": "grep -E '^HISTSIZE' /etc/profile",
+    "passPattern": "HISTSIZE\\s+([1-9]|[1-9][0-9]{1,2}|1000)$",
+    "note": "等保：安全审计"
+  }
+]
