@@ -33,6 +33,11 @@ const USAGE = `audit-pilot —— 等保/基线核查辅助工具
   --dry-run         只打印执行计划（命令+guard 预审），不连接服务器、不执行
   --interactive     Web 审批模式：起本地审批页（仅 127.0.0.1），人工在浏览器勾选放行后才执行
   --only <ids>      只执行指定编号（逗号分隔，如 --only H-01,H-03），配合人工放行
+  --jump-host <h>   跳板机/堡垒机 SSH 地址（给了则先连跳板再经它转发到目标机）
+  --jump-port <p>   跳板机 SSH 端口（默认 22）
+  --jump-user <u>   跳板机 SSH 用户名（给了 --jump-host 必填）
+  --jump-pass <p>   跳板机密码（与 --jump-key 二选一）
+  --jump-key <path> 跳板机私钥路径（与 --jump-pass 二选一）
 
 产物:
   <out>/report.md            初筛报告（统计摘要 + 逐项结论）
@@ -56,10 +61,15 @@ interface CliArgs {
   dryRun: boolean;
   interactive: boolean;
   only?: string;
+  jumpHost?: string;
+  jumpPort: number;
+  jumpUser?: string;
+  jumpPass?: string;
+  jumpKey?: string;
 }
 
-function parseArgs(argv: string[]): CliArgs {
-  const args: CliArgs = { port: 22, out: 'out', timeout: 15000, dryRun: false, interactive: false };
+export function parseArgs(argv: string[]): CliArgs {
+  const args: CliArgs = { port: 22, out: 'out', timeout: 15000, dryRun: false, interactive: false, jumpPort: 22 };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     const next = (): string => {
@@ -107,6 +117,21 @@ function parseArgs(argv: string[]): CliArgs {
       case '--only':
         args.only = next();
         break;
+      case '--jump-host':
+        args.jumpHost = next();
+        break;
+      case '--jump-port':
+        args.jumpPort = Number(next());
+        break;
+      case '--jump-user':
+        args.jumpUser = next();
+        break;
+      case '--jump-pass':
+        args.jumpPass = next();
+        break;
+      case '--jump-key':
+        args.jumpKey = next();
+        break;
       default:
         throw new Error(`未知参数：${a}`);
     }
@@ -114,7 +139,7 @@ function parseArgs(argv: string[]): CliArgs {
   return args;
 }
 
-function validateArgs(args: CliArgs): string[] {
+export function validateArgs(args: CliArgs): string[] {
   const problems: string[] = [];
   if (!args.json && !args.xlsx) problems.push('必须指定 --json 或 --xlsx 之一');
   if (args.json && args.xlsx) problems.push('--json 与 --xlsx 只能二选一');
@@ -125,9 +150,32 @@ function validateArgs(args: CliArgs): string[] {
     if (!args.user) problems.push('必须指定 --user');
     if (!args.pass && !args.key) problems.push('必须指定 --pass 或 --key 之一');
   }
+  // 跳板机参数组：要么完全不给，要么 host+user+凭据齐全
+  const hasJumpBits =
+    args.jumpUser !== undefined || args.jumpPass !== undefined || args.jumpKey !== undefined;
+  if (args.jumpHost !== undefined || hasJumpBits) {
+    if (!args.jumpHost) problems.push('已给跳板参数，必须指定 --jump-host');
+    if (!args.jumpUser) problems.push('已给 --jump-host，必须指定 --jump-user');
+    if (args.jumpHost !== undefined && args.jumpUser !== undefined && !args.jumpPass && !args.jumpKey) {
+      problems.push('跳板机必须指定 --jump-pass 或 --jump-key 之一');
+    }
+  }
   if (Number.isNaN(args.port) || args.port <= 0) problems.push('--port 必须是正整数');
   if (Number.isNaN(args.timeout) || args.timeout <= 0) problems.push('--timeout 必须是正整数');
+  if (Number.isNaN(args.jumpPort) || args.jumpPort <= 0) problems.push('--jump-port 必须是正整数');
   return problems;
+}
+
+/** 由 CLI 参数构造跳板机配置（未给 --jump-host 时为 undefined） */
+function buildJump(args: CliArgs): import('./ssh.js').JumpOptions | undefined {
+  if (args.jumpHost === undefined || args.jumpUser === undefined) return undefined;
+  return {
+    host: args.jumpHost,
+    port: args.jumpPort,
+    username: args.jumpUser,
+    password: args.jumpPass,
+    privateKeyPath: args.jumpKey,
+  };
 }
 
 async function loadChecklist(args: CliArgs): Promise<ChecklistItem[]> {
@@ -258,6 +306,7 @@ async function runInteractive(args: CliArgs, items: ChecklistItem[]): Promise<vo
       password: args.pass,
       privateKeyPath: args.key,
       timeoutMs: args.timeout,
+      jump: buildJump(args),
     });
   } catch (e) {
     console.error((e as Error).message);
@@ -366,6 +415,7 @@ async function main(): Promise<void> {
       password: args.pass,
       privateKeyPath: args.key,
       timeoutMs: args.timeout,
+      jump: buildJump(args),
     });
   } catch (e) {
     console.error((e as Error).message);

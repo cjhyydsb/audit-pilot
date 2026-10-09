@@ -139,3 +139,31 @@ src/
 tests/           # vitest 测试（*.test.ts）
 examples/sample.json  # 等保风格样例清单（8 条，含拦截演示项）
 ```
+
+## 经堡垒机/跳板机核查
+
+目标机只能经堡垒机到达时，两种方式：
+
+### 方式一：--jump 直连跳板（堡垒机支持标准 SSH 接入时）
+
+```bash
+npx tsx src/cli.ts --xlsx 清单.xlsx \
+  --host <目标机IP> --user audit_ro --pass *** \
+  --jump-host <堡垒机IP> --jump-port 22 --jump-user <堡垒机账号> --jump-pass *** \
+  --interactive
+```
+
+先连堡垒机，再经 forwardOut 通道到目标机，guard/审批/报告全套不变。
+
+### 方式二：MobaXterm 本地端口转发（堡垒机需人工认证/OTP 时）
+
+1. MobaXterm 工具栏 **Tunneling** → New SSH tunnel → **Local port forwarding**
+2. 本地端口如 `22222`，SSH 服务器 = 堡垒机，转发目的地 = `目标机IP:22`
+3. 在 MobaXterm 里人工完成堡垒机认证（输 OTP 也没问题）
+4. audit-pilot 连本地隧道口即可：
+
+```bash
+npx tsx src/cli.ts --xlsx 清单.xlsx --host 127.0.0.1 --port 22222 --user audit_ro --pass *** --interactive
+```
+
+> 注意：本工具不依赖 MobaXterm；方式二里 MobaXterm 只承担"人工过堡垒机认证 + 保持隧道"的通道角色。
